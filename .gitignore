@@ -3,3 +3,16 @@
 *.csv
 *.env
 *.json
+
+# all .env file even in subdirectories
+**/*.env
+
+# all .csv file even in subdirectories
+**/*.csv
+
+# all .json file even in subdirectories
+**/*.json
+
+data/**/*
+
+.idea

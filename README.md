@@ -1,3 +1,8 @@
+```shell
+docker run --env-file=otp.env --volume ${PWD}:/data ghcr.io/martinohansen/ynabber:latest
+docker run --env-file=erste.env --volume ${PWD}:/data ghcr.io/martinohansen/ynabber:latest
+```
+
 # Ynabber
 
 Ynabber sets out to read and write bank transactions from one or more sources

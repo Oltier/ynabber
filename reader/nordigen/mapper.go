@@ -36,7 +36,7 @@ func parseAmount(t nordigen.Transaction) (float64, error) {
 }
 
 func parseDate(t nordigen.Transaction) (time.Time, error) {
-	date, err := time.Parse("2006-01-02", t.BookingDate)
+	date, err := time.Parse("2006-01-02", t.ValueDate)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("failed to parse string to time: %w", err)
 	}
