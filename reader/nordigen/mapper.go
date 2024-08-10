@@ -2,6 +2,7 @@ package nordigen
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -36,11 +37,31 @@ func parseAmount(t nordigen.Transaction) (float64, error) {
 }
 
 func parseDate(t nordigen.Transaction) (time.Time, error) {
-	date, err := time.Parse("2006-01-02", t.ValueDate)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to parse string to time: %w", err)
+	valueDate, valueDateErr := time.Parse("2006-01-02", t.ValueDate)
+	bookingDate, bookingDateErr := time.Parse("2006-01-02", t.BookingDate)
+	re := regexp.MustCompile(`^\d{4}\.\d{2}\.\d{2}`)
+	remittanceDateString := re.FindString(t.RemittanceInformationUnstructured)
+	remittanceDate, remittanceDateErr := time.Parse("2006.01.02", remittanceDateString)
+
+	// Handle parsing errors
+	if valueDateErr != nil && bookingDateErr != nil && remittanceDateErr != nil {
+		return time.Time{}, fmt.Errorf("failed to parse any dates")
 	}
-	return date, nil
+
+	// Initialize earliestDate to the first non-zero date
+	earliestDate := time.Time{}
+
+	if remittanceDateErr == nil {
+		earliestDate = remittanceDate
+	}
+	if valueDateErr == nil && (earliestDate.IsZero() || valueDate.Before(earliestDate)) {
+		earliestDate = valueDate
+	}
+	if bookingDateErr == nil && (earliestDate.IsZero() || bookingDate.Before(earliestDate)) {
+		earliestDate = bookingDate
+	}
+
+	return earliestDate, nil
 }
 
 // Default mapping for all banks unless a more specific mapping exists
@@ -77,8 +98,13 @@ func (mapper Default) Map(a ynabber.Account, t nordigen.Transaction) (ynabber.Tr
 
 			// Name is using either creditor or debtor as the payee
 			case "name":
-				// Use either one
-				if t.CreditorName != "" {
+				if amount > 0 {
+					if t.DebtorName != "" {
+						payee = t.DebtorName
+					} else if t.CreditorName != "" {
+						payee = t.CreditorName
+					}
+				} else if t.CreditorName != "" {
 					payee = t.CreditorName
 				} else if t.DebtorName != "" {
 					payee = t.DebtorName

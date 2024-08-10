@@ -64,7 +64,7 @@ func makeID(cfg ynabber.Config, t ynabber.Transaction) string {
 		[]byte(amount),
 	}
 	hash := sha256.Sum256(bytes.Join(s, []byte("")))
-	return fmt.Sprintf("YBBR:%x", hash)[:32]
+	return fmt.Sprintf("YBBRTZ:%x", hash)[:32]
 }
 
 func ynabberToYNAB(cfg ynabber.Config, t ynabber.Transaction) (Ytransaction, error) {
