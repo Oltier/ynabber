@@ -2,6 +2,7 @@ package nordigen
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"log"
 	"regexp"
 	"strings"
@@ -14,6 +15,8 @@ type Reader struct {
 	Config *ynabber.Config
 
 	Client *nordigen.Client
+
+	S3Client *s3.Client
 }
 
 // NewReader returns a new nordigen reader or panics

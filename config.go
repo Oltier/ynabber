@@ -91,6 +91,11 @@ type Nordigen struct {
 	// RequisitionFile overrides the file used to store the requisition. This
 	// file is placed inside the YNABBER_DATADIR.
 	RequisitionFile string `envconfig:"NORDIGEN_REQUISITION_FILE"`
+
+	// uses either `file` or `s3`
+	RequisitionFileStorage string `envconfig:"NORGIDEN_REQUISITION_FILE_STORAGE" default:"file"`
+
+	S3BucketName string `envconfig:"NORDIGEN_REQUISITION_S3_BUCKET_NAME"`
 }
 
 // YNAB related settings

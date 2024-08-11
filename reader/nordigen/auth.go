@@ -1,9 +1,13 @@
 package nordigen
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -29,10 +33,38 @@ func (r Reader) requisitionStore() string {
 	return path.Clean(fmt.Sprintf("%s/%s.json", r.Config.DataDir, file))
 }
 
+func (r Reader) DownloadFile(bucketName string, objectKey string) ([]byte, error) {
+	log.Printf("Reading requisition file from S3 bucket: %s, objectKey: %s", bucketName, objectKey)
+	result, err := r.S3Client.GetObject(context.TODO(), &s3.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(objectKey),
+	})
+	if err != nil {
+		log.Printf("Couldn't get object %v:%v. Here's why: %v\n", bucketName, objectKey, err)
+		return nil, err
+	}
+	defer result.Body.Close()
+	body, err := io.ReadAll(result.Body)
+	if err != nil {
+		log.Printf("Couldn't read object body from %v. Here's why: %v\n", objectKey, err)
+	}
+	return body, nil
+}
+
+func (r Reader) RequisitionFile() ([]byte, error) {
+	if r.Config.Nordigen.RequisitionFileStorage == "s3" {
+		return r.DownloadFile(r.Config.Nordigen.S3BucketName, r.Config.Nordigen.BankID)
+	} else {
+		log.Printf("Reading requisition file from OS file system")
+		return os.ReadFile(r.requisitionStore())
+	}
+}
+
 // Requisition tries to get requisition from disk, if it fails it will create a
 // new and store that one to disk.
 func (r Reader) Requisition() (nordigen.Requisition, error) {
-	requisitionFile, err := os.ReadFile(r.requisitionStore())
+	requisitionFile, err := r.RequisitionFile()
+
 	if errors.Is(err, os.ErrNotExist) {
 		log.Print("Requisition is not found")
 		return r.createRequisition()
