@@ -1,21 +1,25 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"log"
-	"os"
-	"strings"
-	"time"
-
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/carlmjohnson/versioninfo"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/martinohansen/ynabber"
 	"github.com/martinohansen/ynabber/reader/nordigen"
 	"github.com/martinohansen/ynabber/writer/json"
 	"github.com/martinohansen/ynabber/writer/ynab"
+	"log"
+	"os"
+	"strings"
 )
 
-func main() {
+type MyEvent struct {
+	Name string `json:"name"`
+}
+
+func HandleLambdaRequest(ctx context.Context, event *MyEvent) (*string, error) {
 	log.Println("Version:", versioninfo.Short())
 
 	// Read config from env
@@ -57,23 +61,17 @@ func main() {
 		}
 	}
 
-	for {
-		err = run(ynabber, cfg.Interval)
-		if err != nil {
-			panic(err)
-		} else {
-			log.Printf("Run succeeded")
-		}
-		if cfg.Interval > 0 {
-			log.Printf("Waiting %s before running again...", cfg.Interval)
-			time.Sleep(cfg.Interval)
-		} else {
-			os.Exit(0)
-		}
+	err = run(ynabber)
+	if err != nil {
+		return nil, err
+	} else {
+		message := fmt.Sprintf("Run succeeded")
+		log.Printf("%s", message)
+		return &message, nil
 	}
 }
 
-func run(y ynabber.Ynabber, interval time.Duration) error {
+func run(y ynabber.Ynabber) error {
 	var transactions []ynabber.Transaction
 
 	// Read transactions from all readers
@@ -93,4 +91,14 @@ func run(y ynabber.Ynabber, interval time.Duration) error {
 		}
 	}
 	return nil
+}
+
+func main() {
+	isLambda := len(os.Getenv("LAMBDA_TASK_ROOT")) > 0
+	if isLambda {
+		lambda.Start(HandleLambdaRequest)
+	} else {
+		event := &MyEvent{Name: "cica"}
+		HandleLambdaRequest(context.TODO(), event)
+	}
 }
